@@ -55,6 +55,8 @@ class FormatXTCJungfrau(FormatXTC):
         self._beam_index = None
         self._beam_cache = None
 
+        self._dist_det = None
+
     @staticmethod
     def understand(image_file):
         try:
@@ -120,6 +122,13 @@ class FormatXTCJungfrau(FormatXTC):
         wavelength = cspad_tbx.evt_wavelength(evt)
         if wavelength is None:
             return None
+        #shift = -0.0221 #aaron's math, day2
+        shift = -0.02386 #good math day3
+        if self.params.experiment is not None and 'lv95' in self.params.experiment:
+            wavelength += shift
+        elif self.params.data_source is not None and 'lv95' in self.params.data_source:
+            wavelength += shift
+        
         return self._beam_factory.simple(wavelength)
 
     def get_goniometer(self, index=None):
@@ -141,7 +150,13 @@ class FormatXTCJungfrau(FormatXTC):
         self._env = self._ds.env()
         assert len(self.params.detector_address) == 1
         self._det = psana.Detector(self.params.detector_address[0], self._env)
-        geom = self._det.pyda.geoaccess(self._get_event(index).run())
+        evt = self._get_event(index)
+
+        if self._dist_det is None:
+            self._dist_det = psana.Detector('CXI:DS1:MMS:06.RBV')
+        distance = self._dist_det(evt) + 573.3387
+
+        geom = self._det.pyda.geoaccess(evt.run())
         pixel_size = (
             self._det.pixel_size(self._get_event(index)) / 1000.0
         )  # convert to mm
@@ -157,7 +172,7 @@ class FormatXTCJungfrau(FormatXTC):
             root = sub
             root_basis = root_basis * sub_basis
         t = root_basis.translation
-        root_basis.translation = col((t[0], t[1], -t[2]))
+        root_basis.translation = col((t[0], t[1], -distance))
 
         origin = col((root_basis * col((0, 0, 0, 1)))[0:3])
         fast = col((root_basis * col((1, 0, 0, 1)))[0:3]) - origin
@@ -222,7 +237,6 @@ class FormatXTCJungfrau(FormatXTC):
                     break
                 else:
                     p.set_image_size((dim_fast // 4, dim_slow // 2))
-
         if (
             self.params.jungfrau.use_big_pixels
             and os.environ.get("DONT_USE_BIG_PIXELS_JUNGFRAU") is None

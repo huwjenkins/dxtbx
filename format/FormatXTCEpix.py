@@ -60,18 +60,20 @@ class FormatXTCEpix(FormatXTC):
         # the shape of the epix 10k data is (16, 352, 384)
 
         self._raw_data = []
-        for quad_count, quad in enumerate(d.hierarchy()):
-            for module_count, module in enumerate(quad):
-                for asic_count, asic in enumerate(module):
-                    fdim, sdim = asic.get_image_size()
-                    twobytwo_id = (4 * quad_count) + module_count
-                    sensor_id = asic_count // 2  # There are 2X2 asics per module
-                    asic_in_sensor_id = asic_count % 2  # this number will be 0 or 1
-                    asic_data = data[twobytwo_id][
-                        sensor_id * sdim : (sensor_id + 1) * sdim,
-                        asic_in_sensor_id * fdim : (asic_in_sensor_id + 1) * fdim,
-                    ]  # 8 sensors per module
-                    self._raw_data.append(flex.double(np.array(asic_data)))
+        #for quad_count, quad in enumerate(d.hierarchy()):
+            #for module_count, module in enumerate(quad):
+        for module_count, module in enumerate(d.hierarchy()):
+            for asic_count, asic in enumerate(module):
+                fdim, sdim = asic.get_image_size()
+                twobytwo_id = module_count
+                #twobytwo_id = (4 * quad_count) + module_count
+                sensor_id = asic_count // 2  # There are 2X2 asics per module
+                asic_in_sensor_id = asic_count % 2  # this number will be 0 or 1
+                asic_data = data[twobytwo_id][
+                    sensor_id * sdim : (sensor_id + 1) * sdim,
+                    asic_in_sensor_id * fdim : (asic_in_sensor_id + 1) * fdim,
+                ]  # 8 sensors per module
+                self._raw_data.append(flex.double(np.array(asic_data)))
         assert len(d) == len(self._raw_data), (len(d), len(self._raw_data))
         return tuple(self._raw_data)
 
@@ -92,6 +94,12 @@ class FormatXTCEpix(FormatXTC):
         wavelength = cspad_tbx.evt_wavelength(evt)
         if wavelength is None:
             return None
+        # shift = -0.02386  # good math day3
+        shift = -0.0189342783940758 # XPP mono on day1 of P175
+        if self.params.experiment is not None:# and "lv95" in self.params.experiment:
+            wavelength += shift
+        elif self.params.data_source is not None:# and "lv95" in self.params.data_source:
+            wavelength += shift
         return self._beam_factory.simple(wavelength)
 
     def get_goniometer(self, index=None):
@@ -138,53 +146,58 @@ class FormatXTCEpix(FormatXTC):
         pg0.set_name("D%d" % (det_num))
 
         # Now deal with quads
-        for quad_num in range(len(root.get_list_of_children())):
-            pg1 = pg0.add_group()
-            quad = root.get_list_of_children()[quad_num]
-            quad_basis = basis_from_geo(quad)
-            origin = col((quad_basis * col((0, 0, 0, 1)))[0:3])
-            fast = col((quad_basis * col((1, 0, 0, 1)))[0:3]) - origin
-            slow = col((quad_basis * col((0, 1, 0, 1)))[0:3]) - origin
-            pg1.set_local_frame(fast.elems, slow.elems, origin.elems)
-            pg1.set_name("D%dQ%d" % (det_num, quad_num))
+        #for quad_num in range(len(root.get_list_of_children())):
+        #    pg1 = pg0.add_group()
+        #    quad = root.get_list_of_children()[quad_num]
+        #    quad_basis = basis_from_geo(quad)
+        #    origin = col((quad_basis * col((0, 0, 0, 1)))[0:3])
+        #    fast = col((quad_basis * col((1, 0, 0, 1)))[0:3]) - origin
+        #    slow = col((quad_basis * col((0, 1, 0, 1)))[0:3]) - origin
+        #    pg1.set_local_frame(fast.elems, slow.elems, origin.elems)
+        #    pg1.set_name("D%dQ%d" % (det_num, quad_num))
 
             # Modules next
-            for module_num in range(len(quad.get_list_of_children())):
-                pg2 = pg1.add_group()
-                module = quad.get_list_of_children()[module_num]
-                module_basis = basis_from_geo(module)
-                origin = col((module_basis * col((0, 0, 0, 1)))[0:3])
-                fast = col((module_basis * col((1, 0, 0, 1)))[0:3]) - origin
-                slow = col((module_basis * col((0, 1, 0, 1)))[0:3]) - origin
-                pg2.set_local_frame(fast.elems, slow.elems, origin.elems)
-                pg2.set_name("D%dQ%dM%d" % (det_num, quad_num, module_num))
+        for module_num in range(len(root.get_list_of_children())):
+        #for module_num in range(len(quad.get_list_of_children())):
+            pg2 = pg0.add_group()
+            #pg2 = pg1.add_group()
+            module = root.get_list_of_children()[module_num]
+            #module = quad.get_list_of_children()[module_num]
+            module_basis = basis_from_geo(module)
+            origin = col((module_basis * col((0, 0, 0, 1)))[0:3])
+            fast = col((module_basis * col((1, 0, 0, 1)))[0:3]) - origin
+            slow = col((module_basis * col((0, 1, 0, 1)))[0:3]) - origin
+            pg2.set_local_frame(fast.elems, slow.elems, origin.elems)
+            pg2.set_name("D%dM%d" % (det_num, module_num))
+            #pg2.set_name("D%dQ%dM%d" % (det_num, quad_num, module_num))
 
-                # Read the known layout of the Epix 2x2 module
-                sg = sgs.Create(segname=module.oname)
-                xx, yy = sg.get_seg_xy_maps_um()
-                xx = xx / 1000
-                yy = yy / 1000
+            # Read the known layout of the Epix 2x2 module
+            sg = sgs.Create(segname=module.oname)
+            xx, yy = sg.get_seg_xy_maps_um()
+            xx = xx / 1000
+            yy = yy / 1000
 
-                # Now deal with ASICs
-                for asic_num in range(4):
-                    val = "ARRAY_D0Q%dM%dA%d" % (module_num, quad_num, asic_num)
-                    p = pg2.add_panel()
-                    dim_slow = xx.shape[0]
-                    dim_fast = xx.shape[1]
-                    sensor_id = asic_num // 2  # There are 2X2 asics per module
-                    asic_in_sensor_id = asic_num % 2  # this number will be 0 or 1
-                    id_slow = sensor_id * (dim_slow // 2)
-                    id_fast = asic_in_sensor_id * (dim_fast // 2)
-                    origin = col((xx[id_slow][id_fast], yy[id_slow][id_fast], 0))
-                    fp = col((xx[id_slow][id_fast + 1], yy[id_slow][id_fast + 1], 0))
-                    sp = col((xx[id_slow + 1][id_fast], yy[id_slow + 1][id_fast], 0))
-                    fast = (fp - origin).normalize()
-                    slow = (sp - origin).normalize()
-                    p.set_local_frame(fast.elems, slow.elems, origin.elems)
-                    p.set_pixel_size((pixel_size, pixel_size))
-                    p.set_image_size((dim_fast // 2, dim_slow // 2))
-                    p.set_trusted_range((-1, 2e6))
-                    p.set_name(val)
+            # Now deal with ASICs
+            for asic_num in range(4):
+                val = "ARRAY_D0M%dA%d" % (module_num, asic_num)
+                #val = "ARRAY_D0Q%dM%dA%d" % (module_num, quad_num, asic_num)
+                p = pg2.add_panel()
+                dim_slow = xx.shape[0]
+                dim_fast = xx.shape[1]
+                sensor_id = asic_num // 2  # There are 2X2 asics per module
+                asic_in_sensor_id = asic_num % 2  # this number will be 0 or 1
+                id_slow = sensor_id * (dim_slow // 2)
+                id_fast = asic_in_sensor_id * (dim_fast // 2)
+                origin = col((xx[id_slow][id_fast], yy[id_slow][id_fast], 0))
+                fp = col((xx[id_slow][id_fast + 1], yy[id_slow][id_fast + 1], 0))
+                sp = col((xx[id_slow + 1][id_fast], yy[id_slow + 1][id_fast], 0))
+                fast = (fp - origin).normalize()
+                slow = (sp - origin).normalize()
+                p.set_local_frame(fast.elems, slow.elems, origin.elems)
+                p.set_pixel_size((pixel_size, pixel_size))
+                p.set_image_size((dim_fast // 2, dim_slow // 2))
+                p.set_trusted_range((-1, 2e6))
+                p.set_name(val)
         self._cached_detector[run.run()] = d
         return d
 
