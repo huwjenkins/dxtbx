@@ -1,3 +1,13 @@
+DIALS 3.4.4 (2021-05-27)
+========================
+
+Bugfixes
+--------
+
+- Mask temporarily bad modules on the Diamond I03 EIGER 2XE 16M detector (`#348 <https://github.com/cctbx/dxtbx/issues/348>`_)
+- Extend duration of bad module mask for Diamond I03 EIGER 2XE 16M detector (`#355 <https://github.com/cctbx/dxtbx/issues/355>`_)
+
+
 DIALS 3.4.1 (2021-04-01)
 ========================
 
