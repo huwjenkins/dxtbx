@@ -4,7 +4,7 @@ dxtbx 3.8.0 (2022-01-11)
 Features
 --------
 
-- ``dxtbx`` can be optionally used without ``cbflib_adaptbx``. (`#368 <https://github.com/cctbx/dxtbx/issues/368>`_)
+- dxtbx can be optionally used without ``cbflib_adaptbx``. (`#368 <https://github.com/cctbx/dxtbx/issues/368>`_)
 - Experimental support for building dxtbx with CMake. (`#449 <https://github.com/cctbx/dxtbx/issues/449>`_)
 - Track dxtbx version explicitly, with bump2version. (`#458 <https://github.com/cctbx/dxtbx/issues/458>`_)
 
@@ -13,9 +13,9 @@ Bugfixes
 --------
 
 - Fix an arithmetic mistake in ``dxtbx.model.Goniometer.rotate_around_origin``, which was mangling the addition of a new rotation to the goniostat rotation operator :math:`\mathbf{R}`. (`#451 <https://github.com/cctbx/dxtbx/issues/451>`_)
-- Correct pedestal handling for simulated images from ``simtbx`` (`#456 <https://github.com/cctbx/dxtbx/issues/456>`_)
+- Correct pedestal handling for simulated images from ``simtbx``. (`#456 <https://github.com/cctbx/dxtbx/issues/456>`_)
 - Ensure ``FormatTIFF`` only understands images with the expected basic TIFF header. (`#457 <https://github.com/cctbx/dxtbx/issues/457>`_)
-- Get CI builds working again by restricting setuptools<60. (`#459 <https://github.com/cctbx/dxtbx/issues/459>`_)
+- Get CI builds working again by restricting ``setuptools<60``. (`#459 <https://github.com/cctbx/dxtbx/issues/459>`_)
 
 
 Improved Documentation
