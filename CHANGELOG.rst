@@ -1,3 +1,12 @@
+DIALS 3.10.1 (2022-06-15)
+=========================
+
+Bugfixes
+--------
+
+- ``dxtbx.install_format``: Handle case on MacOS ``.pkg`` installations where URL-formats could not be installed. (`#524 <https://github.com/cctbx/dxtbx/issues/524>`_)
+
+
 dxtbx 3.10.0 (2022-06-09)
 =========================
 
